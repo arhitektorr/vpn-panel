@@ -1,4 +1,7 @@
 import threading
+import qrcode
+from io import BytesIO
+from fastapi import Query
 import time
 import os
 from dotenv import load_dotenv
@@ -6,7 +9,7 @@ load_dotenv()
 from fastapi import FastAPI, HTTPException, Response
 from pydantic import BaseModel
 from datetime import datetime
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from fastapi import Request, Form
 import sqlite3
@@ -395,14 +398,30 @@ def disable_expired_clients():
 
     conn.commit()
     conn.close()
+
 @app.get("/panel", response_class=HTMLResponse)
-def panel(request: Request):
+def panel(
+    request: Request, 
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100)
+):
     disable_expired_clients()
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     cur = conn.cursor()
 
-    cur.execute("SELECT * FROM clients ORDER BY id DESC")
+    # Получаем общее количество клиентов
+    cur.execute("SELECT COUNT(*) as total FROM clients")
+    total_count = cur.fetchone()["total"]
+    
+    # Вычисляем OFFSET
+    offset = (page - 1) * per_page
+    
+    # Получаем клиентов с пагинацией
+    cur.execute(
+        "SELECT * FROM clients ORDER BY id DESC LIMIT ? OFFSET ?",
+        (per_page, offset)
+    )
     rows = cur.fetchall()
     conn.close()
 
@@ -443,14 +462,36 @@ def panel(request: Request):
 
         clients.append(client)
 
+    # Вычисляем количество страниц
+    total_pages = (total_count + per_page - 1) // per_page
+    
+    # Определяем диапазон отображаемых страниц (максимум 5)
+    start_page = max(1, page - 2)
+    end_page = min(total_pages, page + 2)
+    
+    # Корректируем если в начале или конце
+    if end_page - start_page < 4:
+        if start_page == 1:
+            end_page = min(total_pages, start_page + 4)
+        elif end_page == total_pages:
+            start_page = max(1, end_page - 4)
+    
+    page_range = range(start_page, end_page + 1)
+
     return templates.TemplateResponse(
         request,
         "clients.html",
         {
-            "clients": clients
+            "clients": clients,
+            "page": page,
+            "per_page": per_page,
+            "total_count": total_count,
+            "total_pages": total_pages,
+            "page_range": page_range,
+            "start_page": start_page,
+            "end_page": end_page
         }
     )
-
 from fastapi.responses import RedirectResponse
 
 
@@ -587,3 +628,97 @@ def start_background_task():
 
 
 start_background_task()
+
+# Добавьте этот импорт в начало файла
+import qrcode
+from io import BytesIO
+from fastapi.responses import StreamingResponse
+
+# Добавьте новый эндпоинт для получения QR-кода
+@app.get("/clients/{client_id}/qrcode")
+def get_client_qrcode(client_id: int):
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM clients WHERE id = ?", (client_id,))
+    row = cur.fetchone()
+    conn.close()
+
+    if not row:
+        raise HTTPException(status_code=404, detail="Клиент не найден")
+
+    # Генерируем конфиг
+    config = build_client_config(row)
+    
+    # Создаём QR-код
+    qr = qrcode.QRCode(
+        version=5,
+        error_correction=qrcode.constants.ERROR_CORRECT_L,
+        box_size=8,
+        border=2,
+    )
+    qr.add_data(config)
+    qr.make(fit=True)
+
+    # Создаём изображение
+    img = qr.make_image(fill_color="#38bdf8", back_color="#0f172a")
+    
+    # Сохраняем в буфер
+    buf = BytesIO()
+    img.save(buf, format="PNG")
+    buf.seek(0)
+    
+    return StreamingResponse(buf, media_type="image/png")
+
+
+# Добавьте этот эндпоинт в main.py
+
+@app.get("/client/{client_id}", response_class=HTMLResponse)
+def client_page(request: Request, client_id: int):
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM clients WHERE id = ?", (client_id,))
+    row = cur.fetchone()
+    conn.close()
+
+    if not row:
+        return HTMLResponse("Клиент не найден", status_code=404)
+
+    client = dict(row)
+    
+    # Форматируем даты
+    created_at = client.get("created_at")
+    if created_at:
+        try:
+            dt = datetime.fromisoformat(created_at)
+            client["created_at_formatted"] = dt.strftime("%d.%m.%Y %H:%M")
+        except Exception:
+            client["created_at_formatted"] = created_at
+    else:
+        client["created_at_formatted"] = ""
+
+    expires_at = client.get("expires_at")
+    client["is_expired"] = False
+    if expires_at:
+        try:
+            try:
+                dt = datetime.strptime(expires_at, "%Y-%m-%d %H:%M:%S")
+            except Exception:
+                try:
+                    dt = datetime.strptime(expires_at, "%Y-%m-%d %H:%M")
+                except Exception:
+                    dt = datetime.strptime(expires_at, "%Y-%m-%d")
+            client["expires_at_formatted"] = dt.strftime("%d.%m.%Y %H:%M")
+            if dt <= datetime.now():
+                client["is_expired"] = True
+        except Exception:
+            client["expires_at_formatted"] = expires_at
+    else:
+        client["expires_at_formatted"] = ""
+
+    return templates.TemplateResponse(
+        request,
+        "client_page.html",
+        {"client": client}
+    )

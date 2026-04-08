@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>{{ client.client_name }} / VPN ARHITEKTOR</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #f5f5f7;
+            font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif;
+            color: #1d1d1f;
+            line-height: 1.4;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 48px 24px;
+        }
+
+        /* типографика */
+        .label {
+            font-size: 11px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            color: #86868b;
+            font-weight: 500;
+            margin-bottom: 6px;
+        }
+
+        .value {
+            font-size: 17px;
+            font-weight: 500;
+            color: #1d1d1f;
+            word-break: break-all;
+        }
+
+        hr {
+            border: none;
+            border-top: 1px solid #e9e9ef;
+            margin: 24px 0;
+        }
+
+        /* хедер */
+        .header {
+            margin-bottom: 48px;
+            text-align: center;
+        }
+
+        .logo {
+            font-size: 13px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: #86868b;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            font-size: 32px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            letter-spacing: -0.3px;
+        }
+
+        .subhead {
+            font-size: 15px;
+            color: #86868b;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-top: 24px;
+            font-size: 13px;
+            color: #0066cc;
+            text-decoration: none;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
+        /* карточки — плоский дизайн */
+        .card {
+            background: #ffffff;
+            border-radius: 20px;
+            padding: 28px;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02);
+            border: 1px solid #f0f0f2;
+        }
+
+        .card-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 24px;
+            letter-spacing: -0.2px;
+        }
+
+        /* сетка информации */
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 24px;
+        }
+
+        .info-item {
+            border-bottom: 1px solid #f0f0f2;
+            padding-bottom: 12px;
+        }
+
+        /* статус */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .status-badge.active {
+            color: #1d7a4a;
+        }
+
+        .status-badge.expired {
+            color: #c44a2c;
+        }
+
+        .status-badge.disabled {
+            color: #8e8e93;
+        }
+
+        /* QR код */
+        .qr-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        .qr-image {
+            background: white;
+            padding: 16px;
+            border-radius: 20px;
+            margin-bottom: 20px;
+            border: 1px solid #e9e9ef;
+        }
+
+        .qr-image img {
+            width: 200px;
+            height: 200px;
+            display: block;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+
+        .btn {
+            background: transparent;
+            border: 1px solid #d9d9e3;
+            padding: 10px 24px;
+            border-radius: 40px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: none;
+            color: #1d1d1f;
+            transition: 0.15s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: #1d1d1f;
+            border-color: #1d1d1f;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2d2d2f;
+        }
+
+        .btn:hover {
+            background: #f5f5f7;
+            border-color: #b0b0b8;
+        }
+
+        /* ссылки на приложения */
+        .apps-grid {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .app-link {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 20px;
+            border: 1px solid #e9e9ef;
+            border-radius: 60px;
+            text-decoration: none;
+            color: #1d1d1f;
+            transition: 0.15s ease;
+            background: white;
+        }
+
+        .app-link:hover {
+            background: #f5f5f7;
+            border-color: #c6c6c8;
+        }
+
+        .app-icon {
+            font-size: 24px;
+        }
+
+        .app-name {
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .app-store {
+            font-size: 11px;
+            color: #86868b;
+        }
+
+        /* примечание — блок с важной информацией */
+        .note {
+            background: #f8f8fa;
+            border-left: 3px solid #1d7a4a;
+            padding: 16px 20px;
+            border-radius: 12px;
+            margin: 20px 0 0;
+        }
+
+        .note-title {
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .note-text {
+            font-size: 13px;
+            color: #555559;
+            line-height: 1.5;
+        }
+
+        .note-text p {
+            margin-bottom: 8px;
+        }
+
+        .note-text p:last-child {
+            margin-bottom: 0;
+        }
+
+        /* инструкция — максимально простая */
+        .step-list {
+            display: flex;
+            flex-direction: column;
+            gap: 28px;
+        }
+
+        .step {
+            display: flex;
+            gap: 16px;
+        }
+
+        .step-number {
+            width: 28px;
+            height: 28px;
+            background: #1d1d1f;
+            color: white;
+            border-radius: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 600;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .step-content {
+            flex: 1;
+        }
+
+        .step-title {
+            font-weight: 600;
+            font-size: 16px;
+            margin-bottom: 6px;
+        }
+
+        .step-desc {
+            font-size: 14px;
+            color: #555559;
+            line-height: 1.4;
+        }
+
+        .step-note {
+            font-size: 13px;
+            color: #86868b;
+            margin-top: 6px;
+        }
+
+        .code {
+            font-family: 'SF Mono', 'Menlo', monospace;
+            font-size: 12px;
+            background: #f5f5f7;
+            padding: 4px 8px;
+            border-radius: 8px;
+            display: inline-block;
+        }
+
+        .badge-android {
+            display: inline-block;
+            background: #e9e9ef;
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 20px;
+            margin-left: 8px;
+            vertical-align: middle;
+            font-weight: 400;
+        }
+
+        /* футер */
+        .footer {
+            text-align: center;
+            font-size: 12px;
+            color: #a1a1a6;
+            margin-top: 48px;
+            padding-top: 24px;
+            border-top: 1px solid #e9e9ef;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 24px 16px;
+            }
+            h1 {
+                font-size: 26px;
+            }
+            .card {
+                padding: 20px;
+            }
+            .info-grid {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+            .qr-image img {
+                width: 160px;
+                height: 160px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <div class="logo">VPN ARHITEKTOR</div>
+        <h1>Доступ к защищённой сети</h1>
+        <div class="subhead">Ваша персональная конфигурация</div>
+        <a href="/panel" class="back-link">← панель управления</a>
+    </div>
+
+    <!-- карточка: подписка -->
+    <div class="card">
+        <div class="card-title">Подписка</div>
+        <div class="info-grid">
+            <div class="info-item">
+                <div class="label">Клиент</div>
+                <div class="value">{{ client.client_name }}</div>
+            </div>
+            <div class="info-item">
+                <div class="label">Телефон</div>
+                <div class="value">{{ client.phone }}</div>
+            </div>
+            <div class="info-item">
+                <div class="label">IP адрес</div>
+                <div class="value">{{ client.assigned_ip }}</div>
+            </div>
+            <div class="info-item">
+                <div class="label">Действует до</div>
+                <div class="value">
+                    {{ client.expires_at_formatted }}
+                    {% if client.is_expired %}
+                        <span class="status-badge expired" style="margin-left: 8px;">просрочен</span>
+                    {% elif client.is_enabled %}
+                        <span class="status-badge active" style="margin-left: 8px;">активен</span>
+                    {% else %}
+                        <span class="status-badge disabled" style="margin-left: 8px;">отключён</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- карточка: QR код + кнопки -->
+    <div class="card">
+        <div class="card-title">QR‑код</div>
+        <div class="qr-wrapper">
+            <div class="qr-image">
+                <img id="qrImage" src="/clients/{{ client.id }}/qrcode" alt="VPN QR Code">
+            </div>
+            <div class="button-group">
+                <a href="/clients/{{ client.id }}/download" class="btn">⬇ Скачать .conf</a>
+                <button onclick="downloadQR()" class="btn">📸 Сохранить QR</button>
+            </div>
+            <div style="font-size: 13px; color: #86868b; margin-top: 16px;">
+                Отсканируйте код в приложении AmneziaWG или WireGuard
+            </div>
+        </div>
+    </div>
+
+    <!-- карточка: установить приложение -->
+    <div class="card">
+        <div class="card-title">Установить приложение</div>
+        <div class="apps-grid">
+            <a href="https://play.google.com/store/apps/details?id=org.amnezia.awg&hl=ru" target="_blank" class="app-link">
+                <span class="app-icon">📱</span>
+                <div>
+                    <div class="app-name">AmneziaWG</div>
+                    <div class="app-store">Google Play</div>
+                </div>
+            </a>
+            <a href="https://apps.apple.com/ru/app/amneziawg/id6478942365" target="_blank" class="app-link">
+                <span class="app-icon">🍏</span>
+                <div>
+                    <div class="app-name">AmneziaWG</div>
+                    <div class="app-store">App Store</div>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <!-- карточка: инструкция (очень понятная) -->
+    <div class="card">
+        <div class="card-title">Как подключиться</div>
+        <div class="step-list">
+            <div class="step">
+                <div class="step-number">1</div>
+                <div class="step-content">
+                    <div class="step-title">Скачай приложение</div>
+                    <div class="step-desc">Выбери ссылку выше для Android или iOS. Установи AmneziaWG.</div>
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                    <div class="step-title">Загрузи конфигурацию</div>
+                    <div class="step-desc">Нажми кнопку <span class="code">Скачать .conf</span> — файл сохранится на твой телефон или компьютер.</div>
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-number">3</div>
+                <div class="step-content">
+                    <div class="step-title">Импортируй файл</div>
+                    <div class="step-desc">
+                        Открой AmneziaWG → нажми <strong>«+»</strong> или <strong>«Импорт»</strong> → выбери файл <span class="code">{{ client.client_name }}.conf</span>.
+                    </div>
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-number">4</div>
+                <div class="step-content">
+                    <div class="step-title">Включи VPN</div>
+                    <div class="step-desc">
+                        Нажми на переключатель рядом с именем конфигурации. Готово — ты в защищённой сети.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ПРИМЕЧАНИЕ ДЛЯ ANDROID -->
+        <div class="note">
+            <div class="note-title">
+                📱 Для владельцев Android
+                <span class="badge-android">рекомендуемый способ</span>
+            </div>
+            <div class="note-text">
+                <p>• <strong>Используй QR‑код</strong> — это самый быстрый и удобный способ подключения на Android.</p>
+                <p>• Если туннель не добавился с первого раза — <strong>попробуй отсканировать QR‑код повторно 2–3 раза</strong>. Иногда приложению нужно несколько попыток.</p>
+                <p>• При добавлении через QR‑код ты можешь указать <strong>любое название туннеля</strong> — например, «Мой VPN» или «Основной». Название не влияет на работу.</p>
+                <p>• Альтернативный способ: скачай файл <span class="code">.conf</span> и импортируй его вручную через кнопку «+» в приложении.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        VPN ARHITEKTOR • конфиденциальность и безопасность
+    </div>
+</div>
+
+<script>
+    function downloadQR() {
+        const qrUrl = document.getElementById('qrImage').src;
+        const link = document.createElement('a');
+        link.href = qrUrl;
+        link.download = 'vpn_{{ client.client_name }}.png';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+</script>
+
+</body>
+</html>
