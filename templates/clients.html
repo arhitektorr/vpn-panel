@@ -586,6 +586,27 @@
             margin-bottom: 20px;
         }
 
+.btn-logout {
+    background: transparent;
+    border: 1px solid #475569;
+    padding: 6px 18px;
+    border-radius: 40px;
+    color: #cbd5f0;
+    font-size: 0.8rem;
+    text-decoration: none;
+    transition: 0.1s;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btn-logout:hover {
+    background: #7f1a1a50;
+    border-color: #ef4444;
+    color: #ffb3b3;
+}
+
         .form-group label {
             display: block;
             margin-bottom: 8px;
@@ -708,13 +729,14 @@
             <p>WireGuard / AmneziaWG • управление клиентами</p>
         </div>
         <div class="header-buttons">
-            <div class="stats" id="totalStats">
-                📋 Всего: {{ total_count }}
-            </div>
-            <button class="btn-add" onclick="openAddModal()">
-                ➕ Добавить клиента
-            </button>
-        </div>
+    <div class="stats" id="totalStats">
+        📋 Всего: {{ total_count }}
+    </div>
+    <button class="btn-add" onclick="openAddModal()">
+        ➕ Добавить клиента
+    </button>
+    <a href="/logout" class="btn-logout" onclick="return confirm('Выйти из панели управления?');">🚪 Выйти</a>
+</div>
     </div>
 
     <!-- Панель управления: поиск + выбор количества -->
@@ -819,6 +841,7 @@
                     <form action="/panel/clients/{{ c.id }}/delete" method="post" onsubmit="return confirm('Удалить клиента?');" style="display:inline;">
                         <button type="submit" class="btn-icon btn-danger">🗑️ Удалить</button>
                     </form>
+<a href="/logout" class="btn-icon" style="background:#7f1a1a50; border-color:#e54848;" onclick="return confirm('Выйти?');">🚪 Выйти</a>
                 </div>
             </div>
         </div>
@@ -1021,28 +1044,28 @@
             return;
         }
         
+        // Преобразуем datetime-local в формат YYYY-MM-DD
         if (expires_at) {
-            expires_at = expires_at.replace('T', ' ') + ':00';
+            expires_at = expires_at.split('T')[0];
         }
         
-        const data = {
-            phone: phone,
-            prefix: prefix,
-            expires_at: expires_at
-        };
+        // Создаём FormData для отправки
+        const formData = new URLSearchParams();
+        formData.append('phone', phone);
+        formData.append('prefix', prefix);
+        formData.append('expires_at', expires_at);
         
         try {
-            const response = await fetch('/clients', {
+            const response = await fetch('/web/clients', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/x-www-form-urlencoded',
                 },
-                body: JSON.stringify(data)
+                body: formData
             });
             
             if (response.ok) {
-                const result = await response.json();
-                showToast(`Клиент ${result.client_name} успешно создан!`, 'success');
+                showToast('Клиент успешно создан!', 'success');
                 closeAddModal();
                 setTimeout(() => {
                     window.location.reload();
@@ -1055,7 +1078,6 @@
             showToast(`Ошибка соединения: ${error.message}`, 'error');
         }
     }
-
     // === РЕДАКТИРОВАНИЕ КЛИЕНТА ===
     function openEditModal(clientId, phone, expiresAt) {
         currentClientId = clientId;
