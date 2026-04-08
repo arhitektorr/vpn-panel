@@ -1,17 +1,23 @@
+import threading
+import time
 import os
 from dotenv import load_dotenv
 load_dotenv()
 from fastapi import FastAPI, HTTPException, Response
 from pydantic import BaseModel
 from datetime import datetime
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
+from fastapi import Request, Form
 import sqlite3
 import subprocess
 import tempfile
 import re
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 
 app = FastAPI()
+templates = Jinja2Templates(directory="/opt/vpn-panel/templates")
 
 DB_PATH = os.getenv("DB_PATH", "/opt/vpn-panel/vpn.db")
 CONTAINER_NAME = os.getenv("CONTAINER_NAME", "amnezia-awg2")
@@ -336,3 +342,248 @@ def add_client_to_table(public_key: str, name: str):
 
     # 5. вернуть в контейнер
     run_cmd(f"docker cp {PANEL_TMP_DIR}/clientsTable.json {CONTAINER_NAME}:{CLIENTS_TABLE_PATH}")
+
+def remove_client_from_table(public_key: str):
+    run_cmd(f"docker cp {CONTAINER_NAME}:{CLIENTS_TABLE_PATH} {PANEL_TMP_DIR}/clientsTable.json")
+
+    with open(f"{PANEL_TMP_DIR}/clientsTable.json", "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    data = [item for item in data if item.get("clientId") != public_key]
+
+    with open(f"{PANEL_TMP_DIR}/clientsTable.json", "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=4)
+
+    run_cmd(f"docker cp {PANEL_TMP_DIR}/clientsTable.json {CONTAINER_NAME}:{CLIENTS_TABLE_PATH}")
+
+def disable_expired_clients():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+
+    cur.execute("SELECT * FROM clients WHERE is_enabled = 1")
+    rows = cur.fetchall()
+
+    now = datetime.now()
+
+    for row in rows:
+        expires_at = row["expires_at"]
+        if not expires_at:
+            continue
+
+        try:
+            try:
+                expiry_dt = datetime.strptime(expires_at, "%Y-%m-%d %H:%M")
+            except Exception:
+                expiry_dt = datetime.strptime(expires_at, "%Y-%m-%d")
+        except Exception:
+            continue
+
+        if expiry_dt <= now:
+            print(f"Disabling expired client: id={row['id']} public_key={row['public_key']} expires_at={expires_at}")
+
+            try:
+                remove_peer_from_wireguard(row["public_key"])
+                print(f"Peer removed: {row['public_key']}")
+            except Exception as e:
+                print(f"Failed to remove peer {row['public_key']}: {e}")
+
+            cur.execute(
+                "UPDATE clients SET is_enabled = 0 WHERE id = ?",
+                (row["id"],)
+            )
+
+    conn.commit()
+    conn.close()
+@app.get("/panel", response_class=HTMLResponse)
+def panel(request: Request):
+    disable_expired_clients()
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+
+    cur.execute("SELECT * FROM clients ORDER BY id DESC")
+    rows = cur.fetchall()
+    conn.close()
+
+    clients = []
+
+    for row in rows:
+        client = dict(row)
+
+        created_at = client.get("created_at")
+        if created_at:
+            try:
+                dt = datetime.fromisoformat(created_at)
+                client["created_at_formatted"] = dt.strftime("%d.%m.%Y %H:%M")
+            except Exception:
+                client["created_at_formatted"] = created_at
+        else:
+            client["created_at_formatted"] = ""
+
+        expires_at = client.get("expires_at")
+        client["is_expired"] = False
+
+        if expires_at:
+            try:
+                try:
+                    dt = datetime.strptime(expires_at, "%Y-%m-%d %H:%M")
+                except Exception:
+                    dt = datetime.strptime(expires_at, "%Y-%m-%d")
+
+                client["expires_at_formatted"] = dt.strftime("%d.%m.%Y %H:%M")
+
+                if dt <= datetime.now():
+                    client["is_expired"] = True
+
+            except Exception:
+                client["expires_at_formatted"] = expires_at
+        else:
+            client["expires_at_formatted"] = ""
+
+        clients.append(client)
+
+    return templates.TemplateResponse(
+        request,
+        "clients.html",
+        {
+            "clients": clients
+        }
+    )
+
+from fastapi.responses import RedirectResponse
+
+
+@app.post("/panel/clients/{client_id}/disable")
+def panel_disable_client(client_id: int):
+    disable_client(client_id)
+    return RedirectResponse(url="/panel", status_code=303)
+
+
+@app.post("/panel/clients/{client_id}/enable")
+def panel_enable_client(client_id: int):
+    enable_client(client_id)
+    return RedirectResponse(url="/panel", status_code=303)
+
+
+@app.post("/panel/clients/{client_id}/delete")
+def panel_delete_client(client_id: int):
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM clients WHERE id = ?", (client_id,))
+    row = cur.fetchone()
+
+    if row:
+        try:
+            remove_peer_from_wireguard(row["public_key"])
+        except Exception:
+            pass
+        try:
+
+            remove_client_from_table(row["public_key"])
+        except Exception:
+            pass
+
+        cur.execute("DELETE FROM clients WHERE id = ?", (client_id,))
+        conn.commit()
+
+    conn.close()
+    return RedirectResponse(url="/panel", status_code=303)
+
+
+@app.post("/panel/clients/{client_id}/extend")
+def extend_client(client_id: int, days: int = Form(...)):
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+
+    cur.execute("SELECT expires_at FROM clients WHERE id = ?", (client_id,))
+    row = cur.fetchone()
+
+    if not row:
+        conn.close()
+        return RedirectResponse(url="/panel", status_code=303)
+
+    current_expiry = row["expires_at"]
+
+    try:
+        if current_expiry:
+            expiry_date = datetime.strptime(current_expiry, "%Y-%m-%d")
+        else:
+            expiry_date = datetime.now()
+    except Exception:
+        expiry_date = datetime.now()
+
+    new_expiry = expiry_date + timedelta(days=days)
+
+    cur.execute(
+        "UPDATE clients SET expires_at = ? WHERE id = ?",
+        (new_expiry.strftime("%Y-%m-%d"), client_id)
+    )
+    conn.commit()
+    conn.close()
+
+    return RedirectResponse(url="/panel", status_code=303)
+
+
+@app.get("/panel/clients/{client_id}/edit", response_class=HTMLResponse)
+def edit_client_page(client_id: int, request: Request):
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+
+    cur.execute("SELECT * FROM clients WHERE id = ?", (client_id,))
+    row = cur.fetchone()
+    conn.close()
+
+    if not row:
+        return RedirectResponse(url="/panel", status_code=303)
+
+    client = dict(row)
+
+    return templates.TemplateResponse(
+    request,
+    "edit_client.html",
+    {
+        "request": request,
+        "client": client
+    }
+)
+
+
+@app.post("/panel/clients/{client_id}/edit")
+def edit_client_save(
+    client_id: int,
+    phone: str = Form(...),
+    expires_at: str = Form(...)
+):
+    expires_at = expires_at.replace("T", " ")
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+
+    cur.execute(
+        "UPDATE clients SET phone = ?, expires_at = ? WHERE id = ?",
+        (phone, expires_at, client_id)
+    )
+    conn.commit()
+    conn.close()
+
+    return RedirectResponse(url="/panel", status_code=303)
+
+def background_worker():
+    while True:
+        try:
+            disable_expired_clients()
+        except Exception as e:
+            print("Background error:", e)
+
+        time.sleep(30)  # проверка каждую минуту
+
+
+def start_background_task():
+    thread = threading.Thread(target=background_worker, daemon=True)
+    thread.start()
+
+
+start_background_task()

@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>VPN ARHITEKTOR | Клиенты</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0f172a 0%, #0a0f1c 100%);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            padding: 20px 16px;
+            color: #e2e8f0;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* хедер */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid rgba(56, 189, 248, 0.2);
+        }
+
+        .title h1 {
+            font-size: 1.6rem;
+            font-weight: 700;
+            background: linear-gradient(120deg, #ffffff, #7dd3fc, #38bdf8);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+
+        .title p {
+            font-size: 0.75rem;
+            color: #7e95c2;
+            margin-top: 4px;
+        }
+
+        .stats {
+            background: rgba(30, 41, 59, 0.6);
+            backdrop-filter: blur(8px);
+            padding: 6px 16px;
+            border-radius: 40px;
+            border: 1px solid #334155;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        /* поиск */
+        .search-bar {
+            margin-bottom: 24px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            background: #0f172a80;
+            padding: 6px 18px;
+            border-radius: 60px;
+            border: 1px solid #334155;
+            backdrop-filter: blur(4px);
+        }
+
+        .search-icon {
+            color: #5b7bb5;
+            font-size: 1.1rem;
+        }
+
+        .search-bar input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            padding: 10px 0;
+            color: #f1f5f9;
+            font-size: 0.85rem;
+            outline: none;
+        }
+
+        .search-bar input::placeholder {
+            color: #5f7eb0;
+        }
+
+        .search-clear {
+            background: none;
+            border: none;
+            color: #7b9ad0;
+            cursor: pointer;
+            font-size: 1.1rem;
+            padding: 0 6px;
+        }
+
+        /* === ДЕСКТОП: таблица === */
+        .table-wrapper {
+            background: #0f172a80;
+            border-radius: 20px;
+            border: 1px solid #1e2a4a;
+            overflow-x: auto;
+            backdrop-filter: blur(4px);
+        }
+
+        .client-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            min-width: 900px;
+        }
+
+        .client-table th {
+            text-align: left;
+            padding: 14px 12px;
+            background: #0a0f1ecc;
+            color: #a9c1f0;
+            font-weight: 600;
+            font-size: 0.75rem;
+            border-bottom: 1px solid #2d3a60;
+        }
+
+        .client-table td {
+            padding: 12px 12px;
+            border-bottom: 1px solid #1e2a4a;
+            vertical-align: middle;
+        }
+
+        .client-table tr:hover {
+            background: #1e2a4a60;
+        }
+
+        /* статус-бейджи */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px;
+            border-radius: 40px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            width: fit-content;
+            background: #1e293b;
+        }
+
+        .status-badge.active {
+            background: #064e3b;
+            color: #6ee7b7;
+            box-shadow: 0 0 4px #10b98140;
+        }
+
+        .status-badge.expired {
+            background: #7c2d12;
+            color: #fdba74;
+        }
+
+        .status-badge.disabled {
+            background: #1f2937;
+            color: #9ca3af;
+        }
+
+        .ip-cell {
+            font-family: 'SF Mono', monospace;
+            background: #02061770;
+            padding: 4px 8px;
+            border-radius: 30px;
+            display: inline-block;
+            font-size: 0.75rem;
+        }
+
+        /* десктопные кнопки */
+        .action-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .btn-icon {
+            background: #1e293b;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 30px;
+            font-size: 0.7rem;
+            font-weight: 500;
+            font-family: inherit;
+            cursor: pointer;
+            color: #cbd5f0;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .btn-icon:hover {
+            background: #2d3a60;
+            color: white;
+        }
+
+        .btn-success { background: #0a3b2f; border: 1px solid #2b9e75; color: #b0f0cf; }
+        .btn-warning { background: #7c2d1230; border: 1px solid #e07c3c; color: #ffc8a2; }
+        .btn-danger { background: #7f1a1a50; border: 1px solid #e54848; color: #ffb3b3; }
+
+        .extend-form {
+            display: inline-flex;
+            gap: 4px;
+            align-items: center;
+            background: #0f172a;
+            padding: 2px 5px;
+            border-radius: 40px;
+        }
+        .extend-form input {
+            width: 50px;
+            background: #020617;
+            border: 1px solid #334155;
+            border-radius: 30px;
+            padding: 4px 5px;
+            color: white;
+            font-size: 0.7rem;
+            text-align: center;
+        }
+
+        /* ========== МОБИЛЬНАЯ ВЕРСИЯ (карточки) ========== */
+        .mobile-list {
+            display: none;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .mobile-card {
+            background: #0f172a;
+            border-radius: 20px;
+            border: 1px solid #1e2a4a;
+            overflow: hidden;
+            transition: 0.1s;
+        }
+
+        .mobile-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 16px;
+            background: #0a0f1e80;
+            cursor: pointer;
+        }
+
+        .mobile-phone {
+            font-weight: 700;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .mobile-phone span {
+            font-family: monospace;
+            background: #020617;
+            padding: 2px 8px;
+            border-radius: 30px;
+            font-size: 0.7rem;
+            color: #7dd3fc;
+        }
+
+        .dots-btn {
+            background: #1e293b;
+            border: none;
+            color: #cbd5f0;
+            font-size: 1.5rem;
+            font-weight: bold;
+            cursor: pointer;
+            padding: 6px 12px;
+            border-radius: 40px;
+            line-height: 1;
+            transition: 0.1s;
+        }
+
+        .dots-btn:hover {
+            background: #334155;
+        }
+
+        /* выпадающее меню (скрыто) */
+        .mobile-actions {
+            display: none;
+            flex-direction: column;
+            gap: 8px;
+            padding: 12px 16px 16px 16px;
+            border-top: 1px solid #1e2a4a;
+            background: #0f172a;
+        }
+
+        .mobile-actions.show {
+            display: flex;
+        }
+
+        .mobile-action-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .mobile-info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            font-size: 0.75rem;
+            border-bottom: 1px solid #1e2a4a;
+        }
+
+        .mobile-info-row .label {
+            color: #7e95c2;
+        }
+
+        .mobile-status {
+            margin: 8px 0 4px;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 40px;
+            color: #7e95c2;
+        }
+
+        /* скрываем на мобилках таблицу, показываем карточки */
+        @media (max-width: 768px) {
+            body {
+                padding: 12px;
+            }
+            .table-wrapper {
+                display: none;
+            }
+            .mobile-list {
+                display: flex;
+            }
+            .stats {
+                font-size: 0.7rem;
+            }
+            .title h1 {
+                font-size: 1.3rem;
+            }
+        }
+
+        /* небольшая анимация */
+        .mobile-actions {
+            animation: fadeIn 0.2s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-5px);}
+            to { opacity: 1; transform: translateY(0);}
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <div class="title">
+            <h1>🛡️ VPN ARHITEKTOR</h1>
+            <p>WireGuard / OpenVPN • управление клиентами</p>
+        </div>
+        <div class="stats" id="totalStats">
+            📋 Всего: {{ clients|length }}
+        </div>
+    </div>
+
+    <!-- поиск -->
+    <div class="search-bar">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="searchInput" placeholder="Поиск по телефону, имени, IP..." autocomplete="off">
+        <button class="search-clear" id="clearSearch" style="display: none;">✖</button>
+    </div>
+
+    <!-- ДЕСКТОП: таблица -->
+    <div class="table-wrapper">
+        <table class="client-table" id="clientsTable">
+            <thead>
+                <tr><th>ID</th><th>Телефон</th><th>Имя</th><th>IP</th><th>Создан</th><th>До</th><th>Статус</th><th>Действия</th></tr>
+            </thead>
+            <tbody id="tableBody">
+                {% for c in clients %}
+                <tr data-searchable="{{ c.phone|lower }} {{ c.client_name|lower }} {{ c.assigned_ip }}">
+                    <td style="font-family:monospace">{{ c.id }}</td>
+                    <td><strong>{{ c.phone }}</strong></td>
+                    <td>{{ c.client_name|default('—') }}</td>
+                    <td><span class="ip-cell">{{ c.assigned_ip|default('—') }}</span></td>
+                    <td>{{ c.created_at_formatted }}</td>
+                    <td>{{ c.expires_at_formatted }}</td>
+                    <td>{% if c.is_expired %}<span class="status-badge expired">🟠 Просрочен</span>{% elif c.is_enabled %}<span class="status-badge active">🟢 Активен</span>{% else %}<span class="status-badge disabled">🔴 Отключён</span>{% endif %}</td>
+                    <td><div class="action-group">
+                        <a href="/clients/{{ c.id }}/download" class="btn-icon">📎 Конфиг</a>
+                        {% if c.is_enabled %}<form action="/panel/clients/{{ c.id }}/disable" method="post" style="display:inline;"><button type="submit" class="btn-icon btn-warning">⛔ Откл.</button></form>
+                        {% else %}<form action="/panel/clients/{{ c.id }}/enable" method="post" style="display:inline;"><button type="submit" class="btn-icon btn-success">✅ Вкл.</button></form>{% endif %}
+                        <a href="/panel/clients/{{ c.id }}/edit" class="btn-icon">✏️ Ред.</a>
+                        <form action="/panel/clients/{{ c.id }}/delete" method="post" style="display:inline;" onsubmit="return confirm('Удалить?');"><button type="submit" class="btn-icon btn-danger">🗑️</button></form>
+                        <form action="/panel/clients/{{ c.id }}/extend" method="post" class="extend-form"><input type="number" name="days" placeholder="дн" value="30"><button type="submit" class="btn-icon">➕</button></form>
+                    </div></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <div id="noResultsMsgTable" class="no-results" style="display: none;">Ничего не найдено</div>
+    </div>
+
+    <!-- МОБИЛЬНАЯ ВЕРСИЯ: список с тремя точками -->
+    <div class="mobile-list" id="mobileList">
+        {% for c in clients %}
+        <div class="mobile-card" data-searchable="{{ c.phone|lower }} {{ c.client_name|lower }} {{ c.assigned_ip }}">
+            <div class="mobile-card-header">
+                <div class="mobile-phone">
+                    📞 {{ c.phone }}
+                    <span>{{ c.client_name|default('—') }}</span>
+                </div>
+                <button class="dots-btn" data-id="{{ c.id }}">⋮</button>
+            </div>
+            <div class="mobile-actions" id="mobileActions-{{ c.id }}">
+                <div class="mobile-info-row"><span class="label">🆔 ID</span><span>{{ c.id }}</span></div>
+                <div class="mobile-info-row"><span class="label">🌐 IP</span><span>{{ c.assigned_ip|default('—') }}</span></div>
+                <div class="mobile-info-row"><span class="label">📅 Создан</span><span>{{ c.created_at_formatted }}</span></div>
+                <div class="mobile-info-row"><span class="label">⏳ Действует до</span><span>{{ c.expires_at_formatted }}</span></div>
+                <div class="mobile-status">
+                    {% if c.is_expired %}<span class="status-badge expired">🟠 Просрочен</span>
+                    {% elif c.is_enabled %}<span class="status-badge active">🟢 Активен</span>
+                    {% else %}<span class="status-badge disabled">🔴 Отключён</span>{% endif %}
+                </div>
+                <div class="mobile-action-buttons">
+                    <a href="/clients/{{ c.id }}/download" class="btn-icon">📎 Конфиг</a>
+                    {% if c.is_enabled %}
+                        <form action="/panel/clients/{{ c.id }}/disable" method="post"><button type="submit" class="btn-icon btn-warning">⛔ Отключить</button></form>
+                    {% else %}
+                        <form action="/panel/clients/{{ c.id }}/enable" method="post"><button type="submit" class="btn-icon btn-success">✅ Включить</button></form>
+                    {% endif %}
+                    <a href="/panel/clients/{{ c.id }}/edit" class="btn-icon">✏️ Редактировать</a>
+                    <form action="/panel/clients/{{ c.id }}/delete" method="post" onsubmit="return confirm('Удалить клиента?');"><button type="submit" class="btn-icon btn-danger">🗑️ Удалить</button></form>
+                    <form action="/panel/clients/{{ c.id }}/extend" method="post" class="extend-form" style="margin-top: 4px;"><input type="number" name="days" placeholder="дней" value="30" style="width:55px;"><button type="submit" class="btn-icon">➕ Продлить</button></form>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    <div id="noResultsMsgMobile" class="no-results" style="display: none;">🔍 Клиенты не найдены</div>
+</div>
+
+<script>
+    (function() {
+        const searchInput = document.getElementById('searchInput');
+        const clearBtn = document.getElementById('clearSearch');
+        const desktopRows = Array.from(document.querySelectorAll('#tableBody tr'));
+        const mobileCards = Array.from(document.querySelectorAll('.mobile-card'));
+        const noResultsTable = document.getElementById('noResultsMsgTable');
+        const noResultsMobile = document.getElementById('noResultsMsgMobile');
+        const totalSpan = document.getElementById('totalStats');
+        const totalCount = {{ clients|length }};
+
+        // тогглы для мобильных ⋮
+        document.querySelectorAll('.dots-btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const id = this.getAttribute('data-id');
+                const actionsDiv = document.getElementById(`mobileActions-${id}`);
+                if (actionsDiv) {
+                    // закрыть все остальные открытые меню
+                    document.querySelectorAll('.mobile-actions').forEach(menu => {
+                        if (menu !== actionsDiv) menu.classList.remove('show');
+                    });
+                    actionsDiv.classList.toggle('show');
+                }
+            });
+        });
+
+        // закрыть меню при клике вне (опционально)
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.dots-btn') && !e.target.closest('.mobile-actions')) {
+                document.querySelectorAll('.mobile-actions').forEach(menu => menu.classList.remove('show'));
+            }
+        });
+
+        function updateStats(visibleDesktop, visibleMobile) {
+            const visible = Math.max(visibleDesktop, visibleMobile);
+            if (visible === totalCount) totalSpan.innerHTML = `📋 Всего: ${totalCount}`;
+            else totalSpan.innerHTML = `📋 Показано: ${visible} / ${totalCount}`;
+        }
+
+        function filterAll() {
+            const query = searchInput.value.trim().toLowerCase();
+            let visibleDesktopCount = 0, visibleMobileCount = 0;
+
+            // фильтр десктоп таблицы
+            if (desktopRows.length) {
+                let anyDesktop = false;
+                desktopRows.forEach(row => {
+                    const searchable = row.getAttribute('data-searchable') || "";
+                    if (query === "" || searchable.includes(query)) {
+                        row.style.display = "";
+                        visibleDesktopCount++;
+                        anyDesktop = true;
+                    } else {
+                        row.style.display = "none";
+                    }
+                });
+                noResultsTable.style.display = (query !== "" && !anyDesktop) ? "block" : "none";
+            }
+
+            // фильтр мобильных карточек
+            let anyMobile = false;
+            mobileCards.forEach(card => {
+                const searchable = card.getAttribute('data-searchable') || "";
+                if (query === "" || searchable.includes(query)) {
+                    card.style.display = "";
+                    visibleMobileCount++;
+                    anyMobile = true;
+                } else {
+                    card.style.display = "none";
+                }
+            });
+            noResultsMobile.style.display = (query !== "" && !anyMobile) ? "block" : "none";
+
+            clearBtn.style.display = query !== "" ? "inline-block" : "none";
+            updateStats(visibleDesktopCount, visibleMobileCount);
+        }
+
+        searchInput.addEventListener('input', filterAll);
+        clearBtn.addEventListener('click', () => {
+            searchInput.value = "";
+            filterAll();
+            searchInput.focus();
+        });
+        filterAll();
+    })();
+</script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Редактирование клиента</title>
+    <meta charset="utf-8">
+</head>
+<body>
+
+<h2>Редактирование клиента</h2>
+
+<form action="/panel/clients/{{ client.id }}/edit" method="post">
+    <p>
+        <label>Телефон:</label><br>
+        <input type="text" name="phone" value="{{ client.phone }}" required>
+    </p>
+
+    <p>
+        <label>Дата окончания:</label><br>
+        <input type="datetime-local" name="expires_at" value="{{ client.expires_at }}">
+    </p>
+
+    <p>
+        <button type="submit">Сохранить</button>
+        <a href="/panel">Назад</a>
+    </p>
+</form>
+
+</body>
+</html>
