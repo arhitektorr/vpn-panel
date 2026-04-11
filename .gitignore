@@ -28,3 +28,7 @@ backups/
 *.tmp
 *.temp
 .DS_Store
+
+# Бэкапы
+*.tar.gz
+backup-*.sh
