@@ -22,7 +22,7 @@ from io import BytesIO
 from collections import defaultdict
 from typing import Optional
 
-# ========== РџР РћР’Р•Р РљРђ РќРђР›РР§РРЇ РџР•Р Р•РњР•РќРќР«РҐ РћРљР РЈР–Р•РќРРЇ ==========
+# ========== ПРОВЕРКА НАЛИЧИЯ ПЕРЕМЕННЫХ ОКРУЖЕНИЯ ==========
 ADMIN_USERNAME = os.getenv("ADMIN_USERNAME")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
 API_TOKEN = os.getenv("API_TOKEN")
@@ -30,29 +30,29 @@ API_TOKEN = os.getenv("API_TOKEN")
 if not ADMIN_USERNAME or not ADMIN_PASSWORD:
     raise ValueError(
         "\n" + "="*60 + "\n"
-        "вќЊ РћРЁРР‘РљРђ РљРћРќР¤РР“РЈР РђР¦РР\n"
+        "❌ ОШИБКА КОНФИГУРАЦИИ\n"
         "="*60 + "\n"
-        "РќРµ Р·Р°РґР°РЅС‹ РїРµСЂРµРјРµРЅРЅС‹Рµ РѕРєСЂСѓР¶РµРЅРёСЏ:\n"
-        f"  ADMIN_USERNAME: {'вњ…' if ADMIN_USERNAME else 'вќЊ РЅРµ Р·Р°РґР°РЅ'}\n"
-        f"  ADMIN_PASSWORD: {'вњ…' if ADMIN_PASSWORD else 'вќЊ РЅРµ Р·Р°РґР°РЅР°'}\n\n"
-        "РЎРѕР·РґР°Р№С‚Рµ С„Р°Р№Р» /opt/vpn-panel/.env СЃ СЃРѕРґРµСЂР¶РёРјС‹Рј:\n"
+        "Не заданы переменные окружения:\n"
+        f"  ADMIN_USERNAME: {'✅' if ADMIN_USERNAME else '❌ не задан'}\n"
+        f"  ADMIN_PASSWORD: {'✅' if ADMIN_PASSWORD else '❌ не задана'}\n\n"
+        "Создайте файл /opt/vpn-panel/.env с содержимым:\n"
         "  ADMIN_USERNAME=admin\n"
-        "  ADMIN_PASSWORD=РІР°С€_СЃР»РѕР¶РЅС‹Р№_РїР°СЂРѕР»СЊ_Р·РґРµСЃСЊ\n"
-        "  API_TOKEN=РІР°С€_СЃРµРєСЂРµС‚РЅС‹Р№_С‚РѕРєРµРЅ_РґР»СЏ_api\n\n"
-        "РџРѕСЃР»Рµ СЃРѕР·РґР°РЅРёСЏ С„Р°Р№Р»Р° РїРµСЂРµР·Р°РїСѓСЃС‚РёС‚Рµ РїР°РЅРµР»СЊ.\n"
+        "  ADMIN_PASSWORD=ваш_сложный_пароль_здесь\n"
+        "  API_TOKEN=ваш_секретный_токен_для_api\n\n"
+        "После создания файла перезапустите панель.\n"
         "="*60
     )
 
 if not API_TOKEN:
     API_TOKEN = secrets.token_urlsafe(32)
-    print(f"\nвљ пёЏ Р’РќРРњРђРќРР•: API_TOKEN РЅРµ Р·Р°РґР°РЅ РІ .env С„Р°Р№Р»Рµ!")
-    print(f"РЎРіРµРЅРµСЂРёСЂРѕРІР°РЅ Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРё: {API_TOKEN}")
-    print(f"Р”РѕР±Р°РІСЊС‚Рµ СЃС‚СЂРѕРєСѓ РІ /opt/vpn-panel/.env:\nAPI_TOKEN={API_TOKEN}\n")
+    print(f"\n⚠️ ВНИМАНИЕ: API_TOKEN не задан в .env файле!")
+    print(f"Сгенерирован автоматически: {API_TOKEN}")
+    print(f"Добавьте строку в /opt/vpn-panel/.env:\nAPI_TOKEN={API_TOKEN}\n")
 
-# ========== РќРђРЎРўР РћР™РљР FASTAPI ==========
+# ========== НАСТРОЙКИ FASTAPI ==========
 app = FastAPI(
     title="VPN ARHITEKTOR API",
-    description="API РґР»СЏ СѓРїСЂР°РІР»РµРЅРёСЏ VPN РєР»РёРµРЅС‚Р°РјРё",
+    description="API для управления VPN клиентами",
     version="1.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
@@ -62,7 +62,7 @@ app = FastAPI(
 templates = Jinja2Templates(directory="/opt/vpn-panel/templates")
 active_sessions = defaultdict(set)
 
-# ========== РђР’РўРћР РР—РђР¦РРЇ ==========
+# ========== АВТОРИЗАЦИЯ ==========
 def verify_web_admin(request: Request):
     session_token = request.cookies.get("session_token")
     client_ip = request.client.host
@@ -90,20 +90,20 @@ def verify_api_token(credentials: Optional[HTTPAuthorizationCredentials] = Depen
     if not credentials:
         raise HTTPException(
             status_code=401,
-            detail="РћС‚СЃСѓС‚СЃС‚РІСѓРµС‚ С‚РѕРєРµРЅ Р°РІС‚РѕСЂРёР·Р°С†РёРё",
+            detail="Отсутствует токен авторизации",
             headers={"WWW-Authenticate": "Bearer"},
         )
     
     if not secrets.compare_digest(credentials.credentials, API_TOKEN):
         raise HTTPException(
             status_code=403,
-            detail="РќРµРґРµР№СЃС‚РІРёС‚РµР»СЊРЅС‹Р№ С‚РѕРєРµРЅ",
+            detail="Недействительный токен",
             headers={"WWW-Authenticate": "Bearer"},
         )
     
     return True
 
-# ========== РќРђРЎРўР РћР™РљР ==========
+# ========== НАСТРОЙКИ ==========
 DB_PATH = os.getenv("DB_PATH", "/opt/vpn-panel/vpn.db")
 CONTAINER_NAME = os.getenv("CONTAINER_NAME", "amnezia-awg2")
 WG_INTERFACE = os.getenv("WG_INTERFACE", "awg0")
@@ -115,7 +115,7 @@ TEMPLATE_PATH = os.getenv("TEMPLATE_PATH", "/opt/vpn-panel/awg_template.conf")
 CLIENTS_TABLE_PATH = os.getenv("CLIENTS_TABLE_PATH", "/opt/amnezia/awg/clientsTable")
 PANEL_TMP_DIR = os.getenv("PANEL_TMP_DIR", "/opt/vpn-panel")
 
-# ========== РРќРР¦РРђР›РР—РђР¦РРЇ Р‘Р” ==========
+# ========== ИНИЦИАЛИЗАЦИЯ БД ==========
 def init_db():
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
@@ -130,23 +130,15 @@ def init_db():
         assigned_ip TEXT NOT NULL UNIQUE,
         expires_at TEXT NOT NULL,
         is_enabled INTEGER NOT NULL DEFAULT 1,
-        created_at TEXT NOT NULL,
-        client_group TEXT NOT NULL DEFAULT 'Р‘РµР· РіСЂСѓРїРїС‹'
+        created_at TEXT NOT NULL
     )
     """)
-
-    # Lightweight schema migration for older installs.
-    cur.execute("PRAGMA table_info(clients)")
-    columns = {row[1] for row in cur.fetchall()}
-    if "client_group" not in columns:
-        cur.execute("ALTER TABLE clients ADD COLUMN client_group TEXT NOT NULL DEFAULT 'Р‘РµР· РіСЂСѓРїРїС‹'")
-
     conn.commit()
     conn.close()
 
 init_db()
 
-# ========== РњРћР”Р•Р›Р ==========
+# ========== МОДЕЛИ ==========
 class ClientCreate(BaseModel):
     phone: str
     prefix: str
@@ -157,28 +149,7 @@ class ClientUpdate(BaseModel):
     expires_at: Optional[str] = None
     is_enabled: Optional[bool] = None
 
-def normalize_group_name(value: Optional[str]) -> str:
-    group = (value or "").strip()
-    return group if group else "Без группы"
-
-def parse_client_expiry(value: Optional[str]) -> Optional[datetime]:
-    if not value:
-        return None
-
-    for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M", "%Y-%m-%d"):
-        try:
-            return datetime.strptime(value, fmt)
-        except Exception:
-            continue
-    return None
-
-def calculate_new_expiry(current_value: Optional[str], days: int) -> datetime:
-    now = datetime.now()
-    current_expiry = parse_client_expiry(current_value)
-    base = current_expiry if current_expiry and current_expiry > now else now
-    return base + timedelta(days=days)
-
-# ========== Р’РЎРџРћРњРћР“РђРўР•Р›Р¬РќР«Р• Р¤РЈРќРљР¦РР ==========
+# ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
 def run_cmd(cmd: str) -> str:
     result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
     if result.returncode != 0:
@@ -221,7 +192,7 @@ def get_next_ip() -> str:
         if i not in used:
             return f"10.8.1.{i}"
 
-    raise Exception("РќРµС‚ СЃРІРѕР±РѕРґРЅС‹С… IP")
+    raise Exception("Нет свободных IP")
 
 def add_peer_to_wireguard(public_key: str, psk: str, ip: str):
     with tempfile.NamedTemporaryFile("w", delete=False) as f:
@@ -334,7 +305,7 @@ def background_worker():
 
 threading.Thread(target=background_worker, daemon=True).start()
 
-# ========== РћРўРљР Р«РўР«Р• Р­РќР”РџРћРРќРўР« ==========
+# ========== ОТКРЫТЫЕ ЭНДПОИНТЫ ==========
 @app.get("/")
 def root():
     return {"status": "VPN panel API working", "docs": "/docs"}
@@ -349,7 +320,7 @@ def client_page(request: Request, client_id: int):
     conn.close()
 
     if not row:
-        return HTMLResponse("РљР»РёРµРЅС‚ РЅРµ РЅР°Р№РґРµРЅ", status_code=404)
+        return HTMLResponse("Клиент не найден", status_code=404)
 
     client = dict(row)
     
@@ -394,7 +365,7 @@ def download_client_config(client_id: int):
     conn.close()
 
     if not row:
-        raise HTTPException(status_code=404, detail="РљР»РёРµРЅС‚ РЅРµ РЅР°Р№РґРµРЅ")
+        raise HTTPException(status_code=404, detail="Клиент не найден")
 
     config = build_client_config(row)
     filename = f"{row['client_name']}.conf"
@@ -415,7 +386,7 @@ def get_client_qrcode(client_id: int):
     conn.close()
 
     if not row:
-        raise HTTPException(status_code=404, detail="РљР»РёРµРЅС‚ РЅРµ РЅР°Р№РґРµРЅ")
+        raise HTTPException(status_code=404, detail="Клиент не найден")
 
     config = build_client_config(row)
     
@@ -430,7 +401,7 @@ def get_client_qrcode(client_id: int):
     
     return StreamingResponse(buf, media_type="image/png")
 
-# ========== Р›РћР“РРќ/Р’Р«РҐРћР” ==========
+# ========== ЛОГИН/ВЫХОД ==========
 @app.get("/login", response_class=HTMLResponse)
 def login_page(request: Request, error: str = None):
     if verify_web_admin(request):
@@ -448,7 +419,7 @@ def login(request: Request, username: str = Form(...), password: str = Form(...)
         response.set_cookie(key="session_token", value=session_token, httponly=True, max_age=86400, samesite="lax", path="/")
         return response
     
-    return RedirectResponse(url="/login?error=РќРµРІРµСЂРЅС‹Р№+Р»РѕРіРёРЅ+РёР»Рё+РїР°СЂРѕР»СЊ", status_code=303)
+    return RedirectResponse(url="/login?error=Неверный+логин+или+пароль", status_code=303)
 
 @app.get("/logout")
 def logout(request: Request):
@@ -464,15 +435,9 @@ def logout(request: Request):
     response.delete_cookie("session_token")
     return response
 
-# ========== Р’Р•Р‘-Р­РќР”РџРћРРќРўР« Р”Р›РЇ РџРђРќР•Р›Р ==========
+# ========== ВЕБ-ЭНДПОИНТЫ ДЛЯ ПАНЕЛИ ==========
 @app.post("/web/clients")
-async def web_create_client(
-    request: Request, 
-    phone: str = Form(...), 
-    prefix: str = Form(...), 
-    expires_at: str = Form(...),
-    client_group: str = Form("Без группы")
-):
+async def web_create_client(request: Request, phone: str = Form(...), prefix: str = Form(...), expires_at: str = Form(...)):
     if not verify_web_admin(request):
         return RedirectResponse(url="/login", status_code=303)
     
@@ -482,7 +447,6 @@ async def web_create_client(
         preshared_key = generate_psk()
         ip = get_next_ip()
 
-        client_group = normalize_group_name(client_group)
         client_name = f"{prefix}_{phone}_{public_key[:6]}"
         created_at = datetime.utcnow().isoformat()
 
@@ -493,9 +457,9 @@ async def web_create_client(
         cur = conn.cursor()
         cur.execute("""
             INSERT INTO clients
-            (phone, client_name, public_key, private_key, preshared_key, assigned_ip, expires_at, is_enabled, created_at, client_group)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (phone, client_name, public_key, private_key, preshared_key, ip, expires_at, 1, created_at, client_group))
+            (phone, client_name, public_key, private_key, preshared_key, assigned_ip, expires_at, is_enabled, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (phone, client_name, public_key, private_key, preshared_key, ip, expires_at, 1, created_at))
         conn.commit()
         conn.close()
 
@@ -503,16 +467,10 @@ async def web_create_client(
 
     except Exception as e:
         print(f"Error creating client: {e}")
-        return RedirectResponse(url="/panel?error=РћС€РёР±РєР°+РїСЂРё+СЃРѕР·РґР°РЅРёРё", status_code=303)
-
-
+        return RedirectResponse(url="/panel?error=Ошибка+при+создании", status_code=303)
 
 @app.get("/panel", response_class=HTMLResponse)
-async def panel(
-    request: Request, 
-    page: int = Query(1, ge=1), 
-    per_page: int = Query(20, ge=1, le=100)
-):
+async def panel(request: Request, page: int = Query(1, ge=1), per_page: int = Query(20, ge=1, le=100)):
     if not verify_web_admin(request):
         return RedirectResponse(url="/login", status_code=303)
     
@@ -521,11 +479,15 @@ async def panel(
     conn.row_factory = sqlite3.Row
     cur = conn.cursor()
 
-    cur.execute("SELECT * FROM clients ORDER BY client_group, id DESC")
+    cur.execute("SELECT COUNT(*) as total FROM clients")
+    total_count = cur.fetchone()["total"]
+    
+    offset = (page - 1) * per_page
+    cur.execute("SELECT * FROM clients ORDER BY id DESC LIMIT ? OFFSET ?", (per_page, offset))
     rows = cur.fetchall()
     conn.close()
 
-    groups_dict = {}
+    clients = []
 
     for row in rows:
         client = dict(row)
@@ -557,90 +519,25 @@ async def panel(
         else:
             client["expires_at_formatted"] = ""
 
-        group_name = normalize_group_name(client.get("client_group"))
-        if group_name not in groups_dict:
-            groups_dict[group_name] = []
-        groups_dict[group_name].append(client)
+        clients.append(client)
 
-    groups = [{"name": g, "clients": c, "count": len(c)} for g, c in groups_dict.items()]
-    groups.sort(key=lambda x: (x["name"] != "Без группы", x["name"]))
+    total_pages = (total_count + per_page - 1) // per_page
+    start_page = max(1, page - 2)
+    end_page = min(total_pages, page + 2)
+    
+    if end_page - start_page < 4:
+        if start_page == 1:
+            end_page = min(total_pages, start_page + 4)
+        elif end_page == total_pages:
+            start_page = max(1, end_page - 4)
+    
+    page_range = range(start_page, end_page + 1)
 
-    total_count = len(rows)
-
-    return templates.TemplateResponse(
-        request,
-        "clients.html",
-        {
-            "groups": groups,
-            "total_count": total_count,
-            "page": page,
-            "per_page": per_page
-        }
-    )
-
-@app.get("/api/group/{group_name}/{action}")
-async def panel_group_action(
-    request: Request,
-    group_name: str,
-    action: str,
-    days: int = Query(30, ge=1, le=365)
-):
-    if not verify_web_admin(request):
-        return RedirectResponse(url="/login", status_code=303)
-
-    action = action.lower().strip()
-    if action not in {"disable", "enable", "extend"}:
-        return RedirectResponse(url="/panel?error=unknown_group_action", status_code=303)
-
-    target_group = normalize_group_name(group_name)
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    cur = conn.cursor()
-    cur.execute(
-        """
-        SELECT * FROM clients
-        WHERE COALESCE(NULLIF(TRIM(client_group), ''), 'Без группы') = ?
-        ORDER BY id DESC
-        """,
-        (target_group,),
-    )
-    rows = cur.fetchall()
-
-    changed_ids = []
-    for row in rows:
-        try:
-            if action == "extend":
-                new_expiry = calculate_new_expiry(row["expires_at"], days)
-                cur.execute(
-                    "UPDATE clients SET expires_at = ? WHERE id = ?",
-                    (new_expiry.strftime("%Y-%m-%d"), row["id"])
-                )
-            elif action == "disable":
-                if row["is_enabled"] == 1:
-                    remove_peer_from_wireguard(row["public_key"])
-                    changed_ids.append(row["id"])
-            else:
-                if row["is_enabled"] == 0:
-                    add_peer_to_wireguard(row["public_key"], row["preshared_key"], row["assigned_ip"])
-                    changed_ids.append(row["id"])
-        except Exception as e:
-            # Continue processing remaining clients in group.
-            print(f"Group action '{action}' failed for client {row['id']}: {e}")
-
-    if changed_ids:
-        placeholders = ",".join("?" for _ in changed_ids)
-        new_state = 0 if action == "disable" else 1
-        cur.execute(
-            f"UPDATE clients SET is_enabled = ? WHERE id IN ({placeholders})",
-            [new_state, *changed_ids]
-        )
-
-    conn.commit()
-    conn.close()
-    return RedirectResponse(url="/panel", status_code=303)
-
-
-
+    return templates.TemplateResponse(request, "clients.html", {
+        "clients": clients, "page": page, "per_page": per_page,
+        "total_count": total_count, "total_pages": total_pages,
+        "page_range": page_range, "start_page": start_page, "end_page": end_page
+    })
 
 @app.post("/panel/clients/{client_id}/disable")
 async def panel_disable_client(request: Request, client_id: int):
@@ -730,7 +627,16 @@ async def panel_extend_client(request: Request, client_id: int, days: int = Form
     row = cur.fetchone()
 
     if row:
-        new_expiry = calculate_new_expiry(row["expires_at"], days)
+        current_expiry = row["expires_at"]
+        try:
+            if current_expiry:
+                expiry_date = datetime.strptime(current_expiry, "%Y-%m-%d")
+            else:
+                expiry_date = datetime.now()
+        except:
+            expiry_date = datetime.now()
+
+        new_expiry = expiry_date + timedelta(days=days)
         cur.execute("UPDATE clients SET expires_at = ? WHERE id = ?", (new_expiry.strftime("%Y-%m-%d"), client_id))
         conn.commit()
 
@@ -768,7 +674,7 @@ async def edit_client_save(request: Request, client_id: int, phone: str = Form(.
 
     return RedirectResponse(url="/panel", status_code=303)
 
-# ========== API Р­РќР”РџРћРРќРўР« (РўР Р•Р‘РЈР®Рў TOKEN) ==========
+# ========== API ЭНДПОИНТЫ (ТРЕБУЮТ TOKEN) ==========
 @app.get("/api/clients", dependencies=[Depends(verify_api_token)])
 def api_list_clients():
     conn = sqlite3.connect(DB_PATH)
@@ -788,7 +694,7 @@ def api_get_client(client_id: int):
     row = cur.fetchone()
     conn.close()
     if not row:
-        raise HTTPException(status_code=404, detail="РљР»РёРµРЅС‚ РЅРµ РЅР°Р№РґРµРЅ")
+        raise HTTPException(status_code=404, detail="Клиент не найден")
     return {"success": True, "data": dict(row)}
 
 @app.post("/api/clients", dependencies=[Depends(verify_api_token)])
@@ -809,16 +715,16 @@ def api_create_client(data: ClientCreate):
         cur = conn.cursor()
         cur.execute("""
             INSERT INTO clients
-            (phone, client_name, public_key, private_key, preshared_key, assigned_ip, expires_at, is_enabled, created_at, client_group)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (data.phone, client_name, public_key, private_key, preshared_key, ip, data.expires_at, 1, created_at, "Без группы"))
+            (phone, client_name, public_key, private_key, preshared_key, assigned_ip, expires_at, is_enabled, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (data.phone, client_name, public_key, private_key, preshared_key, ip, data.expires_at, 1, created_at))
         conn.commit()
         client_id = cur.lastrowid
         conn.close()
 
         return {
             "success": True,
-            "message": "РљР»РёРµРЅС‚ СЃРѕР·РґР°РЅ",
+            "message": "Клиент создан",
             "data": {
                 "id": client_id, "phone": data.phone, "client_name": client_name,
                 "public_key": public_key, "private_key": private_key, "preshared_key": preshared_key,
@@ -838,7 +744,7 @@ def api_update_client(client_id: int, data: ClientUpdate):
     
     if not existing:
         conn.close()
-        raise HTTPException(status_code=404, detail="РљР»РёРµРЅС‚ РЅРµ РЅР°Р№РґРµРЅ")
+        raise HTTPException(status_code=404, detail="Клиент не найден")
     
     updates, params = [], []
     
@@ -865,7 +771,7 @@ def api_update_client(client_id: int, data: ClientUpdate):
     updated = cur.fetchone()
     conn.close()
     
-    return {"success": True, "message": "РљР»РёРµРЅС‚ РѕР±РЅРѕРІР»С‘РЅ", "data": dict(updated)}
+    return {"success": True, "message": "Клиент обновлён", "data": dict(updated)}
 
 @app.delete("/api/clients/{client_id}", dependencies=[Depends(verify_api_token)])
 def api_delete_client(client_id: int):
@@ -888,7 +794,7 @@ def api_delete_client(client_id: int):
         conn.commit()
 
     conn.close()
-    return {"success": True, "message": "РљР»РёРµРЅС‚ СѓРґР°Р»С‘РЅ"}
+    return {"success": True, "message": "Клиент удалён"}
 
 @app.post("/api/clients/{client_id}/disable", dependencies=[Depends(verify_api_token)])
 def api_disable_client(client_id: int):
@@ -900,7 +806,7 @@ def api_disable_client(client_id: int):
     conn.close()
 
     if not row:
-        raise HTTPException(status_code=404, detail="РљР»РёРµРЅС‚ РЅРµ РЅР°Р№РґРµРЅ")
+        raise HTTPException(status_code=404, detail="Клиент не найден")
 
     try:
         remove_peer_from_wireguard(row["public_key"])
@@ -909,7 +815,7 @@ def api_disable_client(client_id: int):
         cur.execute("UPDATE clients SET is_enabled = 0 WHERE id = ?", (client_id,))
         conn.commit()
         conn.close()
-        return {"success": True, "message": "РљР»РёРµРЅС‚ РѕС‚РєР»СЋС‡С‘РЅ"}
+        return {"success": True, "message": "Клиент отключён"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -923,7 +829,7 @@ def api_enable_client(client_id: int):
     conn.close()
 
     if not row:
-        raise HTTPException(status_code=404, detail="РљР»РёРµРЅС‚ РЅРµ РЅР°Р№РґРµРЅ")
+        raise HTTPException(status_code=404, detail="Клиент не найден")
 
     try:
         add_peer_to_wireguard(row["public_key"], row["preshared_key"], row["assigned_ip"])
@@ -932,7 +838,7 @@ def api_enable_client(client_id: int):
         cur.execute("UPDATE clients SET is_enabled = 1 WHERE id = ?", (client_id,))
         conn.commit()
         conn.close()
-        return {"success": True, "message": "РљР»РёРµРЅС‚ РІРєР»СЋС‡С‘РЅ"}
+        return {"success": True, "message": "Клиент включён"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -946,14 +852,22 @@ def api_extend_client(client_id: int, days: int = Query(..., ge=1, le=365)):
 
     if not row:
         conn.close()
-        raise HTTPException(status_code=404, detail="РљР»РёРµРЅС‚ РЅРµ РЅР°Р№РґРµРЅ")
+        raise HTTPException(status_code=404, detail="Клиент не найден")
 
-    new_expiry = calculate_new_expiry(row["expires_at"], days)
+    try:
+        if row["expires_at"]:
+            expiry_date = datetime.strptime(row["expires_at"], "%Y-%m-%d")
+        else:
+            expiry_date = datetime.now()
+    except:
+        expiry_date = datetime.now()
+
+    new_expiry = expiry_date + timedelta(days=days)
     cur.execute("UPDATE clients SET expires_at = ? WHERE id = ?", (new_expiry.strftime("%Y-%m-%d"), client_id))
     conn.commit()
     conn.close()
 
-    return {"success": True, "message": f"РџРѕРґРїРёСЃРєР° РїСЂРѕРґР»РµРЅР° РЅР° {days} РґРЅРµР№", "new_expires_at": new_expiry.strftime("%Y-%m-%d")}
+    return {"success": True, "message": f"Подписка продлена на {days} дней", "new_expires_at": new_expiry.strftime("%Y-%m-%d")}
 
 @app.get("/api/stats", dependencies=[Depends(verify_api_token)])
 def api_stats():
@@ -971,9 +885,8 @@ def api_stats():
 
 if __name__ == "__main__":
     import uvicorn
-    print(f"\nрџљЂ VPN ARHITEKTOR API Р·Р°РїСѓС‰РµРЅ")
-    print(f"рџ“– Р”РѕРєСѓРјРµРЅС‚Р°С†РёСЏ API: http://localhost:8000/docs")
-    print(f"рџ”ђ API Token: {API_TOKEN}")
-    print(f"рџЊђ Р’РµР±-РїР°РЅРµР»СЊ: http://localhost:8000/panel\n")
+    print(f"\n🚀 VPN ARHITEKTOR API запущен")
+    print(f"📖 Документация API: http://localhost:8000/docs")
+    print(f"🔐 API Token: {API_TOKEN}")
+    print(f"🌐 Веб-панель: http://localhost:8000/panel\n")
     uvicorn.run(app, host="0.0.0.0", port=8000)
-
