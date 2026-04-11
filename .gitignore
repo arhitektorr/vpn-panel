@@ -1,7 +1,30 @@
+# Виртуальное окружение
 venv/
 __pycache__/
+*.pyc
+
+# Секреты и конфиги
 .env
 vpn.db
 *.conf
 clientsTable.json
+clientsTable
+wg0.*
 *.bak
+*.log
+
+# Бэкапы
+backups/
+*.tar.gz
+*.zip
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Временные файлы
+*.tmp
+*.temp
+.DS_Store
